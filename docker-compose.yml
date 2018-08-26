@@ -1,0 +1,47 @@
+version: '3'
+services:
+  db:
+    image: "mysql:8.0"
+    volumes:
+      - data:/var/lib/mysql
+      - .docker/db/my.cnf:/etc/mysql/conf.d/my.cnf
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+    tty: true
+    stdin_open: true
+
+  app:
+    build:
+      context: .
+      dockerfile: ./.docker/containers/app/Dockerfile
+    volumes:
+      - .:/myapp
+      - bundle:/usr/local/bundle:cached
+      - node_modules:/myapp/node_modules:cached
+    ports:
+      - "3000:3000"
+      - "3035:3035"
+    depends_on:
+      - db
+      - kvs
+    tty: true
+    stdin_open: true
+    environment:
+      - TZ=Japan
+      - REDIS_HOST=kvs
+      - REDIS_PORT=6379
+  kvs:
+    image: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_sock:/tmp
+      - redis_data:/data
+
+volumes:
+  data:
+  bundle:
+  node_modules:
+  redis_sock:
+  redis_data:
